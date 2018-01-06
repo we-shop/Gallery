@@ -10,8 +10,8 @@ class PagesController: UIViewController {
 
   lazy var scrollView: UIScrollView = self.makeScrollView()
   lazy var scrollViewContentView: UIView = UIView()
-  lazy var pageIndicator: PageIndicator = self.makePageIndicator()
-
+  lazy var pageIndicator: PageIndicator? = self.makePageIndicator()
+  
   var selectedIndex: Int = 0
   let once = Once()
 
@@ -79,43 +79,30 @@ class PagesController: UIViewController {
 
     return scrollView
   }
-
-  func makePageIndicator() -> PageIndicator {
-    let items = controllers.flatMap { $0.title }
-    let indicator = PageIndicator(items: items)
-    indicator.delegate = self
-
-    return indicator
+  
+  func makePageIndicator() -> PageIndicator? {
+    if shouldUsePageIndicator() {
+      let items = controllers.flatMap { $0.title }
+      let indicator = PageIndicator(items: items)
+      indicator.delegate = self
+      return indicator
+    }
+    return nil
   }
 
   // MARK: - Setup
 
   func setup() {
-    let usePageIndicator = controllers.count > 1
-    if usePageIndicator {
-      view.addSubview(pageIndicator)
-      Constraint.on(
-        pageIndicator.leftAnchor.constraint(equalTo: pageIndicator.superview!.leftAnchor),
-        pageIndicator.rightAnchor.constraint(equalTo: pageIndicator.superview!.rightAnchor),
-        pageIndicator.heightAnchor.constraint(equalToConstant: 40)
-      )
-      
-      if #available(iOS 11, *) {
-        Constraint.on(
-          pageIndicator.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
-        )
-      } else {
-        Constraint.on(
-          pageIndicator.bottomAnchor.constraint(equalTo: pageIndicator.superview!.bottomAnchor)
-        )
-      }
-    }
-    
     view.addSubview(scrollView)
     scrollView.addSubview(scrollViewContentView)
-
+    
+    if let indicator = pageIndicator {
+      view.addSubview(indicator)
+      addConstraintForPageIndicator(indicator)
+    }
+    
     scrollView.g_pinUpward()
-    if usePageIndicator {
+    if shouldUsePageIndicator() {
       scrollView.g_pin(on: .bottom, view: pageIndicator, on: .top)
     } else {
       scrollView.g_pinDownward()
@@ -158,7 +145,7 @@ class PagesController: UIViewController {
 
   fileprivate func scrollToAndSelect(index: Int, animated: Bool) {
     scrollTo(index: index, animated: animated)
-    pageIndicator.select(index: index, animated: animated)
+    pageIndicator?.select(index: index, animated: animated)
   }
 
   func updateAndNotify(_ index: Int) {
@@ -173,6 +160,26 @@ class PagesController: UIViewController {
       controller.pageDidShow()
     }
   }
+  
+  private func shouldUsePageIndicator() -> Bool {
+    return controllers.count > 1
+  }
+  
+  private func addConstraintForPageIndicator(_ pageIndicator: PageIndicator) {
+    
+    Constraint.on(
+      pageIndicator.leftAnchor.constraint(equalTo: pageIndicator.superview!.leftAnchor),
+      pageIndicator.rightAnchor.constraint(equalTo: pageIndicator.superview!.rightAnchor),
+      pageIndicator.heightAnchor.constraint(equalToConstant: 40)
+    )
+    
+    if #available(iOS 11, *) {
+      Constraint.on(pageIndicator.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor))
+    } else {
+      Constraint.on(pageIndicator.bottomAnchor.constraint(equalTo: pageIndicator.superview!.bottomAnchor))
+    }
+  }
+  
 }
 
 extension PagesController: PageIndicatorDelegate {
@@ -190,7 +197,8 @@ extension PagesController: UIScrollViewDelegate {
         return
     }
     let index = Int(round(scrollView.contentOffset.x / scrollView.frame.size.width))
-    pageIndicator.select(index: index)
+    pageIndicator?.select(index: index)
     updateAndNotify(index)
   }
 }
+
