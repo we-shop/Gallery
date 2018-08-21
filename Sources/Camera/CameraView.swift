@@ -86,7 +86,15 @@ class CameraView: UIView, UIGestureRecognizerDelegate {
       )
     }
 
-    bottomContainer.g_pinDownward()
+    
+    if #available(iOS 11, *) {
+        Constraint.on(
+            bottomContainer.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor)
+        )
+        bottomContainer.g_pinHorizontally(padding: 0)
+    } else {
+        bottomContainer.g_pinDownward()
+    }
     bottomContainer.g_pin(height: 80)
     bottomView.g_pinEdges()
 

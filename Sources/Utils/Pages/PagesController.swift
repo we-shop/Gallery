@@ -71,12 +71,17 @@ class PagesController: UIViewController {
     scrollView.alwaysBounceHorizontal = false
     scrollView.bounces = false
     scrollView.delegate = self
+    if #available(iOS 11.0, *) {
+        scrollView.contentInsetAdjustmentBehavior = .never
+    } else {
+        // Fallback on earlier versions
+    }
 
     return scrollView
   }
 
   func makePageIndicator() -> PageIndicator {
-    let items = controllers.compactMap { $0.title }
+    let items = controllers.flatMap { $0.title }
     let indicator = PageIndicator(items: items)
     indicator.delegate = self
 
@@ -181,6 +186,9 @@ extension PagesController: PageIndicatorDelegate {
 extension PagesController: UIScrollViewDelegate {
 
   func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    guard scrollView.frame.size.width > 0 else {
+        return
+    }
     let index = Int(round(scrollView.contentOffset.x / scrollView.frame.size.width))
     pageIndicator.select(index: index)
     updateAndNotify(index)
